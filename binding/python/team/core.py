@@ -93,9 +93,11 @@ class TeamNetDevice(object):
     Class for manipulating generic network device.
     """
 
-    def __init__(self, th, ifindex=0):
+    def __init__(self, th, teamdev=None, ifindex=0):
         self._th = th
         self._conv = TeamNetDeviceIndexNameConverter(th)
+        if ifindex == 0 and teamdev is not None:
+            ifindex = self._conv.get_ifindex(teamdev) if teamdev else 0
         self.ifindex = ifindex
 
     def __str__(self):
@@ -371,8 +373,7 @@ class Team(TeamNetDevice):
         if not th:
             raise TeamLibError("Failed to allocate team handle.")
 
-        ifindex = self._conv.get_ifindex(teamdev) if teamdev else 0
-        super(Team, self).__init__(th, ifindex)
+        super(Team, self).__init__(th, teamdev=teamdev)
 
         if isinstance(teamdev, str):
             err = 0
@@ -383,7 +384,7 @@ class Team(TeamNetDevice):
             if err:
                 raise TeamLibError("Failed to create team.", err)
 
-        err = capi.team_init(th, ifindex)
+        err = capi.team_init(th, self.ifindex)
         if err:
             raise TeamLibError("Failed to init team.", err)
 
