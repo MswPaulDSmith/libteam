@@ -28,11 +28,13 @@ TEAM_ANY_CHANGE = capi.TEAM_ANY_CHANGE
 TEAM_PORT_CHANGE = capi.TEAM_PORT_CHANGE
 TEAM_OPTION_CHANGE = capi.TEAM_OPTION_CHANGE
 
+
 class TeamError(Exception):
     pass
 
+
 class TeamLibError(TeamError):
-    def __init__(self, msg, err = 0):
+    def __init__(self, msg, err=0):
         self._msg = msg
         self._err = err
 
@@ -42,8 +44,10 @@ class TeamLibError(TeamError):
             msg += " Err=%d" % self._err
         return msg
 
+
 class TeamUnknownOptionTypeError(TeamError):
     pass
+
 
 class TeamNetDeviceIndexNameConverter(object):
     """
@@ -53,6 +57,7 @@ class TeamNetDeviceIndexNameConverter(object):
                         interface name (str)
                         TeamNetDevice (or inheritor) instance
     """
+
     def __init__(self, th):
         self._th = th
 
@@ -82,11 +87,13 @@ class TeamNetDeviceIndexNameConverter(object):
             raise TeamError("Cannot convert to interface name.")
         return capi.team_ifindex2ifname(self._th, ifindex, 32)
 
+
 class TeamNetDevice(object):
     """
     Class for manipulating generic network device.
     """
-    def __init__(self, th, ifindex = 0):
+
+    def __init__(self, th, ifindex=0):
         self._th = th
         self._conv = TeamNetDeviceIndexNameConverter(th)
         self.ifindex = ifindex
@@ -107,18 +114,20 @@ class TeamNetDevice(object):
         err, hwaddr = capi.team_hwaddr_get(self._th, self.ifindex, 6)
         if err:
             raise TeamLibError("Failed to get hardware address", err)
-        return ":".join(map(lambda x: "%02X" % x, struct.unpack('BBBBBB', hwaddr)))
+        return ":".join(map(lambda x: "%02X" % x, struct.unpack("BBBBBB", hwaddr)))
 
     def set_hwaddr(self, hwaddr_str):
-        pack = struct.pack('BBBBBB', *map(lambda x : int(x, 16), hwaddr_str.split(":")))
+        pack = struct.pack("BBBBBB", *map(lambda x: int(x, 16), hwaddr_str.split(":")))
         err = capi.team_hwaddr_set(self._th, self.ifindex, pack)
         if err:
             raise TeamLibError("Failed to set hardware address", err)
+
 
 class TeamPort(TeamNetDevice):
     """
     Class stores port data and serves for port modification.
     """
+
     def update(self, lib_port):
         """
         Update option by give library structure.
@@ -129,10 +138,12 @@ class TeamPort(TeamNetDevice):
         self.linkup = capi.team_is_port_link_up(lib_port)
         self.removed = capi.team_is_port_removed(lib_port)
 
+
 class TeamPortListIterator(object):
     """
     Iterator class for TeamPortList class for iterating over all listed ports.
     """
+
     def __init__(self, ports):
         self._ports = ports
         self._cursor = 0
@@ -141,7 +152,7 @@ class TeamPortListIterator(object):
         iter
 
     def next(self):
-        """ Get next item in dict """
+        """Get next item in dict"""
         if self._cursor == len(self._ports):
             raise StopIteration
         else:
@@ -149,11 +160,13 @@ class TeamPortListIterator(object):
             self._cursor += 1
             return self._ports[key]
 
+
 class TeamPortList(object):
     """
     Class contains list of ports present on team. Dictionary is used
     internaly since port interface index is unique.
     """
+
     def __init__(self, th):
         self._th = th
         self._conv = TeamNetDeviceIndexNameConverter(th)
@@ -194,10 +207,12 @@ class TeamPortList(object):
             if not ifindex in lib_port_ifindex_list:
                 del self._ports[ifindex]
 
+
 class TeamOption(object):
     """
     Class stores option data and serves for value modification.
     """
+
     def __init__(self, th, name):
         self._th = th
         self.name = name
@@ -223,21 +238,20 @@ class TeamOption(object):
         Set option value.
         """
         if isinstance(value, int):
-            err = capi.team_set_option_value_by_name_u32(self._th, self.name,
-                                                         value)
+            err = capi.team_set_option_value_by_name_u32(self._th, self.name, value)
         elif isinstance(value, str):
-            err = capi.team_set_option_value_by_name_string(self._th,
-                                                            self.name,
-                                                            value)
+            err = capi.team_set_option_value_by_name_string(self._th, self.name, value)
         else:
             raise TeamUnknownOptionTypeError()
         if err:
             raise TeamLibError("Failed to set option", err)
 
+
 class TeamOptionListIterator(object):
     """
     Iterator class for TeamOptionList class for iterating over all options.
     """
+
     def __init__(self, options):
         self._options = options
         self._cursor = 0
@@ -246,7 +260,7 @@ class TeamOptionListIterator(object):
         iter
 
     def next(self):
-        """ Get next item in dict """
+        """Get next item in dict"""
         if self._cursor == len(self._options):
             raise StopIteration
         else:
@@ -254,11 +268,13 @@ class TeamOptionListIterator(object):
             self._cursor += 1
             return self._options[key]
 
+
 class TeamOptionList(object):
     """
     Class contains list of options present on team. Dictionary is used
     internaly since option name is unique.
     """
+
     def __init__(self, th):
         self._th = th
         self._options = {}
@@ -301,6 +317,7 @@ class TeamOptionList(object):
             if not opt_name in lib_option_name_list:
                 del self._options[opt_name]
 
+
 class TeamChangeHandler(object):
     def __init__(self, func, func_priv, type_mask):
         self._func = func
@@ -313,18 +330,23 @@ class TeamChangeHandler(object):
         else:
             return 0
 
+
 class TeamChangeHandlerList(object):
     def __init__(self):
         self._list = []
 
     def add(self, handler):
         if handler in self._list:
-            raise TeamError("Failed to register change handler. Handler is already registered.")
+            raise TeamError(
+                "Failed to register change handler. Handler is already registered."
+            )
         self._list.append(handler)
 
     def remove(self, handler):
         if not handler in self._list:
-            raise TeamError("Failed to unregister change handler. Handler is not registered.")
+            raise TeamError(
+                "Failed to unregister change handler. Handler is not registered."
+            )
         self._list.remove(handler)
 
     def call(self, type_mask):
@@ -343,12 +365,14 @@ class Team(TeamNetDevice):
                              it's removed first.
         destroy == True ... Remove team device in close function.
     """
-    def __init__(self, teamdev, create = False, recreate = False, destroy = False):
+
+    def __init__(self, teamdev, create=False, recreate=False, destroy=False):
         th = capi.team_alloc()
         if not th:
             raise TeamLibError("Failed to allocate team handle.")
 
-        super(Team, self).__init__(th)
+        ifindex = self._conv.get_ifindex(teamdev) if teamdev else 0
+        super(Team, self).__init__(th, ifindex)
 
         if isinstance(teamdev, str):
             err = 0
@@ -359,7 +383,6 @@ class Team(TeamNetDevice):
             if err:
                 raise TeamLibError("Failed to create team.", err)
 
-        ifindex = self._conv.get_ifindex(teamdev) if teamdev else 0
         err = capi.team_init(th, ifindex)
         if err:
             raise TeamLibError("Failed to init team.", err)
@@ -370,10 +393,10 @@ class Team(TeamNetDevice):
         self._port_list = TeamPortList(th)
         self._option_list = TeamOptionList(th)
 
-        self._change_handler = capi.team_change_handler(self._change_handler_func,
-                                                        TEAM_ANY_CHANGE)
+        self._change_handler = capi.team_change_handler(
+            self._change_handler_func, TEAM_ANY_CHANGE
+        )
         capi.py_team_change_handler_register(self._th, self._change_handler, None)
-
 
     def close(self):
         """
@@ -384,8 +407,7 @@ class Team(TeamNetDevice):
             if err:
                 raise TeamLibError("Failed to destroy team.", err)
 
-        capi.py_team_change_handler_unregister(self._th,
-                                               self._change_handler, None)
+        capi.py_team_change_handler_unregister(self._th, self._change_handler, None)
         capi.team_free(self._th)
 
     def kill_loop(self):
@@ -442,8 +464,7 @@ class Team(TeamNetDevice):
         return self.get_port(port_ifindex)
 
     def set_active_port(self, dev_port_id):
-        err = capi.team_set_active_port(self._th,
-                                        self._conv.get_ifindex(dev_port_id))
+        err = capi.team_set_active_port(self._th, self._conv.get_ifindex(dev_port_id))
         if err:
             raise TeamLibError("Failed to set active port.", err)
 
@@ -454,14 +475,12 @@ class Team(TeamNetDevice):
         return self._port_list.get_port(port_dev_id)
 
     def port_add(self, port_dev_id):
-        err = capi.team_port_add(self._th,
-                                 self._conv.get_ifindex(port_dev_id))
+        err = capi.team_port_add(self._th, self._conv.get_ifindex(port_dev_id))
         if err:
             raise TeamLibError("Failed to add port.", err)
 
     def port_remove(self, port_dev_id):
-        err = capi.team_port_remove(self._th,
-                                    self._conv.get_ifindex(port_dev_id))
+        err = capi.team_port_remove(self._th, self._conv.get_ifindex(port_dev_id))
         if err:
             raise TeamLibError("Failed to remove port.", err)
 
