@@ -348,7 +348,9 @@ class Team(TeamNetDevice):
         if not th:
             raise TeamLibError("Failed to allocate team handle.")
 
-        super(Team, self).__init__(th)
+        ifindex = self._conv.get_ifindex(teamdev) if teamdev is not None else 0
+
+        super(Team, self).__init__(th, ifindex)
 
         if isinstance(teamdev, str):
             err = 0
@@ -359,12 +361,10 @@ class Team(TeamNetDevice):
             if err:
                 raise TeamLibError("Failed to create team.", err)
 
-        ifindex = self._conv.get_ifindex(teamdev) if teamdev else 0
         err = capi.team_init(th, ifindex)
         if err:
             raise TeamLibError("Failed to init team.", err)
 
-        self.ifindex = ifindex
         self._destroy = destroy
         self._change_handler_list = TeamChangeHandlerList()
         self._port_list = TeamPortList(th)
